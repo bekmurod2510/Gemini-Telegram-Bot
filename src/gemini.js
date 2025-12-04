@@ -51,7 +51,7 @@ class GeminiService {
         }
         
         // Common working model names (updated Dec 2024)
-        return "gemini-1.5-pro-latest";
+        return "gemini-3-pro-preview";
     }
 
     async generateResponse(userId, message) {
