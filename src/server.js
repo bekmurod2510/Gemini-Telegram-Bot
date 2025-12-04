@@ -84,45 +84,39 @@ class Server {
     }
 
     async start() {
-        // For production with webhook
-        if (this.nodeEnv === 'production' && process.env.WEBHOOK_URL) {
-            console.log('Production mode detected, setting up webhook...');
-            const webhookSetup = await this.botHandler.setupWebhook(process.env.WEBHOOK_URL);
-            
-            if (webhookSetup) {
-                console.log('Webhook setup successful');
-            } else {
-                console.log('Falling back to polling mode');
-                this.botHandler.startPolling();
-            }
-        } else {
-            // For development, use polling
-            console.log('Development mode detected, using polling...');
-            this.botHandler.startPolling();
-        }
-
-        // Start Express server
-        this.server = this.app.listen(this.port, () => {
-            console.log(`
-🚀 Server is running!
-🌐 Environment: ${this.nodeEnv}
-📡 Port: ${this.port}
-🤖 Bot: ${this.bot.options.username}
-📊 Health Check: http://localhost:${this.port}/
-            `);
-        });
-
-        // Graceful shutdown
-        process.on('SIGTERM', () => {
-            console.log('SIGTERM received, shutting down gracefully...');
-            this.shutdown();
-        });
-
-        process.on('SIGINT', () => {
-            console.log('SIGINT received, shutting down gracefully...');
-            this.shutdown();
-        });
+    // Fix environment typo
+    if (process.env.NODE_ENV === 'produciton') {
+        process.env.NODE_ENV = 'production';
     }
+    
+    const nodeEnv = process.env.NODE_ENV || 'development';
+    console.log(`🌐 Environment: ${nodeEnv}`);
+    
+    // Initialize bot (but don't start polling/webhook yet)
+    console.log('🤖 Initializing bot handler...');
+    this.botHandler = new TelegramBotHandler();
+    
+    // Wait a bit for initialization to complete
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Start server first
+    this.server = this.app.listen(this.port, '0.0.0.0', async () => {
+        console.log(`✅ Server running on port ${this.port}`);
+        console.log(`📊 Health: http://0.0.0.0:${this.port}/`);
+        
+        // Wait for server to be fully ready
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // THEN start bot in appropriate mode
+        if (nodeEnv === 'production' && process.env.WEBHOOK_URL) {
+            console.log('🚀 Production: Setting up webhook...');
+            await this.botHandler.setupWebhook(process.env.WEBHOOK_URL);
+        } else {
+            console.log('🔧 Development: Starting polling...');
+            await this.botHandler.startPolling();
+        }
+    });
+}
 
     shutdown() {
         console.log('Closing HTTP server...');

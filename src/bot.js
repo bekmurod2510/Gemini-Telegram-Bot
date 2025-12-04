@@ -17,7 +17,7 @@ class TelegramBotHandler {
         }
 
         // Initialize bot
-        this.bot = new TelegramBot(this.botToken);
+this.bot = new TelegramBot(this.botToken, { polling: false, webHook: true });
         
         // Initialize Gemini service
         this.gemini = new GeminiService(this.geminiApiKey);
